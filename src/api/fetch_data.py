@@ -31,7 +31,6 @@ def download_crypto_data():
 
         else:
             print(f"Failed to download {ticker}")
-        time.sleep(60)
         
         
     current_prices = {}
