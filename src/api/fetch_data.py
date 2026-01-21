@@ -44,5 +44,3 @@ def download_crypto_data():
     
 if __name__ == "__main__":
     download_crypto_data()
-    df = pd.read_csv(r"data/raw/BTC_historical.csv")
-    print(df.head())
