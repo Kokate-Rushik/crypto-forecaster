@@ -21,26 +21,47 @@ def download_crypto_data():
 
     print(f"Downloading data for: {', '.join(tickers)}")
 
+    # getting all history in one request
+    all_history = yf.download(tickers, period="5y", interval="1d", group_by="ticker")
+
     for ticker in tickers:
-        data = yf.download(ticker, period="5y", interval="1d")
-
-        if not data.empty:
-            file_name = f"{ticker.replace('-USD', '')}_historical.csv"
-            data.to_csv(os.path.join(raw_data_path, file_name))
-            print(f"Saved {ticker} to {file_name}")
-
-        else:
-            print(f"Failed to download {ticker}")
+        try:
+            ticker_data = all_history[ticker].dropna()
+            
+            if not ticker_data.empty:
+                if isinstance(ticker_data.columns, pd.MultiIndex):
+                    ticker_data.columns = ticker_data.columns.get_level_values(0)
+                
+                clean_name = ticker.replace('-USD', '')
+                file_name = f"{clean_name}_historical.csv"
+                save_path = os.path.join(RAW_DATA_DIR, file_name)
+                
+                ticker_data.to_csv(save_path)
+                print(f"Saved {ticker}")
+            
+            # Politeness delay (prevents IP flags)
+            time.sleep(1) 
+            
+        except Exception as e:
+            print(f"Failed to save {ticker}: {e}")
         
         
-    current_prices = {}
+        
+    print("\n Fetching latest market prices...")
+    
     for ticker in tickers:
-        coin = yf.Ticker(ticker)
-        current_prices[ticker] = coin.history(period="1d")['Close'].iloc[-1]
-
-    print("\n---- Current Market Prices ----")
-    for coin, price in current_prices.items():
-        print(f"{coin}: ${price:.2f}")
+        try:
+           
+            clean_name = ticker.replace('-USD', '')
+            file_path = os.path.join(RAW_DATA_DIR, f"{clean_name}_historical.csv")
+            
+            temp_df = pd.read_csv(file_path)
+            
+            last_price = temp_df['Close'].iloc[-1]
+            
+            print(f"{ticker}: ${last_price:.2f}")
+        except Exception:
+            print(f"{ticker}: Data not found in local CSV")
     
 if __name__ == "__main__":
     download_crypto_data()
