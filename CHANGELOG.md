@@ -1,5 +1,8 @@
 # Project Update Log
 
+## [2026-02-02] - Data Pipeline Refactoring
+- **Added** `src/api/fetch_news.py` for collecting cleaned bitcoin news.
+
 ## [2026-01-21] - Data Pipeline Refactoring
 - **Added** `src/config.py` for centralized path management.
 - **Fixed** Resolved `YFRateLimitError` by implementing batch downloads in `fetch)data.py`.
