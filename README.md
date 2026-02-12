@@ -91,7 +91,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 This project was a collaborative effort by the following developers:
 
-- **[Your Name]** ([@Rushik](https://github.com/Kokate-Rushik)): **Project Lead & Lead Developer**. Architected the Hybrid Sentiment Engine, implemented the fragmented Streamlit UI, and refined the core data processing pipelines.
+- **Rushik Kokate** ([@Rushik](https://github.com/Kokate-Rushik)): **Project Lead & Lead Developer**. Architected the Hybrid Sentiment Engine, implemented the fragmented Streamlit UI, and refined the core data processing pipelines.
 - **Shravan Shidruk** ([@Shravan](https://github.com/shravanshidruk16)): **ML Engineer & Dashboard Developer**. Developed the Analytics and Dashboard components. Specifically responsible for developing and training the **ARIMA**, **FB_Prophet**, and **LSTM** models for the following tickers:
   - **BTC** (Bitcoin)
   - **ETH** (Ethereum)
