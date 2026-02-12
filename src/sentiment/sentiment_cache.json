@@ -1,0 +1,28 @@
+{
+    "last_update": "2026-02-12 T 12:17:08",
+    "btc_analysis": {
+        "market_fear_percent": 60.89,
+        "market_greed_percent": 18.89,
+        "market_neutral_percent": 20.22
+    },
+    "eth_analysis": {
+        "market_fear_percent": 36.27,
+        "market_greed_percent": 25.49,
+        "market_neutral_percent": 38.24
+    },
+    "sol_analysis": {
+        "market_fear_percent": 27.0,
+        "market_greed_percent": 38.0,
+        "market_neutral_percent": 35.0
+    },
+    "usdc_analysis": {
+        "market_fear_percent": 9.0,
+        "market_greed_percent": 49.0,
+        "market_neutral_percent": 42.0
+    },
+    "usdt_analysis": {
+        "market_fear_percent": 20.0,
+        "market_greed_percent": 40.0,
+        "market_neutral_percent": 40.0
+    }
+}
