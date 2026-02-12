@@ -7,15 +7,20 @@ from pathlib import Path
 from transformers import pipeline
 
 # 1. NEW: Import shared logic
-from utils import map_emotion, categorize
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 MODEL_PATH = PROJECT_ROOT / "src" / "models" / "sentiment_logic.pkl"
 CACHE_FILE = PROJECT_ROOT / "src" / "sentiment" / "sentiment_cache.json"
+src = PROJECT_ROOT / "src" 
+# from utils import map_emotion, categorize
+from src.sentiment.utils import map_emotion, categorize
 
 def load_heavy_model():
     if not MODEL_PATH.exists():
         return None
+    import __main__
+    from src.sentiment.utils import map_emotion
+    __main__.map_emotion = map_emotion
     with open(MODEL_PATH, 'rb') as f:
         return pickle.load(f)
 
@@ -25,6 +30,7 @@ def get_market_sentiment_stats(symbol, csv_url):
     # 2. Load existing cache
     cache_data = {}
     if CACHE_FILE.exists():
+
         with open(CACHE_FILE, 'r') as f:
             cache_data = json.load(f)
     

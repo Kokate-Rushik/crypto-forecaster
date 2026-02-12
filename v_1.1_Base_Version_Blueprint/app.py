@@ -4,6 +4,43 @@ from datetime import datetime
 
 st.set_page_config(page_title="Crypto Forecast Dashboard", layout="wide")
 
+st.set_page_config(layout="wide", page_title="Crypto AI Forecast")
+
+marquee_spot = st.empty()
+
+@st.fragment(run_every="1h")  # Heavy lifting happens once an hour
+def render_marquee():
+    # Initial placeholder while loading
+    marquee_spot.markdown(
+        '<marquee style="color: #666;">🔄 Syncing market psychology across exchanges...</marquee>', 
+        unsafe_allow_html=True
+    )
+    
+    COINS = {
+        "Bitcoin": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/bitcoin_news.csv",
+        "Ethereum": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/ethereum_news.csv",
+        "Solana": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/solana_news.csv"
+    }
+    
+    ticker_parts = []
+    for name, url in COINS.items():
+        # This call is heavy (FinBERT), but fragment keeps it isolated
+        stats = get_market_sentiment_stats(name, url)
+        ticker_parts.append(
+            f"{name}: Greed {stats['market_greed_percent']}% | "
+            f"Fear {stats['market_fear_percent']}% | "
+            f"Neutral {stats['market_neutral_percent']}%"
+        )
+    
+    marquee_text = " || ".join(ticker_parts)
+    marquee_spot.markdown(
+        f'<marquee style="color: #007BFF; font-weight: bold; font-family: sans-serif;">'
+        f'● {marquee_text} ●'
+        f'</marquee>', 
+        unsafe_allow_html=True
+    )
+
+
 BASE_DIR = "."   # ✅ FIXED
 
 st.title("📊 Real-Time Crypto Forecasting Dashboard")
@@ -28,7 +65,7 @@ col2.metric("Data Status", "Live Simulation")
 
 st.markdown("---")
 
-coin_folder = os.path.join(BASE_DIR, model_choice, coin_choice)
+coin_folder = os.path.join(BASE_DIR, '\Output', model_choice, coin_choice)
 
 if not os.path.exists(coin_folder):
     st.error(f"Folder not found: {coin_folder}")
@@ -57,3 +94,5 @@ st.table({
 })
 
 st.success("🚀 Multi-model crypto forecasting dashboard running in real-time simulation.")
+
+render_marquee()

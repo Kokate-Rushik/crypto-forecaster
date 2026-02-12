@@ -1,5 +1,5 @@
 {
-    "last_update": "2026-02-12 T 12:17:08",
+    "last_update": "2026-02-12 T 15:17:06",
     "btc_analysis": {
         "market_fear_percent": 60.89,
         "market_greed_percent": 18.89,
@@ -21,6 +21,26 @@
         "market_neutral_percent": 42.0
     },
     "usdt_analysis": {
+        "market_fear_percent": 20.0,
+        "market_greed_percent": 40.0,
+        "market_neutral_percent": 40.0
+    },
+    "bitcoin_analysis": {
+        "market_fear_percent": 60.89,
+        "market_greed_percent": 18.89,
+        "market_neutral_percent": 20.22
+    },
+    "ethereum_analysis": {
+        "market_fear_percent": 36.27,
+        "market_greed_percent": 25.49,
+        "market_neutral_percent": 38.24
+    },
+    "solana_analysis": {
+        "market_fear_percent": 27.0,
+        "market_greed_percent": 38.0,
+        "market_neutral_percent": 35.0
+    },
+    "tether_analysis": {
         "market_fear_percent": 20.0,
         "market_greed_percent": 40.0,
         "market_neutral_percent": 40.0

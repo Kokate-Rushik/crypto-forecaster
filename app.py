@@ -1,195 +1,114 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-from statsmodels.tsa.arima.model import ARIMA
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from prophet import Prophet
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-from sklearn.preprocessing import MinMaxScaler
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from transformers import pipeline
-from supabase import create_client
+import os
+from datetime import datetime
+from src.sentiment.analyzer import get_market_sentiment_stats
+from src.sentiment.utils import map_emotion, categorize
 
-st.set_page_config(layout="wide", page_title="Crypto AI Forecast")
-
-# ================= SUPABASE AUTH =================
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-if "user" not in st.session_state:
-    st.session_state.user = None
-
-def login(email, password):
-    try:
-        res = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": password
-        })
-        st.session_state.user = res.user
-        st.success("Login successful")
-    except Exception as e:
-        st.error("Invalid credentials")
-
-def signup(email, password):
-    try:
-        res = supabase.auth.admin.create_user({
-            "email": email,
-            "password": password,
-            "email_confirm": True
-        })
-        st.success("Signup successful! You can login now.")
-    except Exception as e:
-        st.error(f"Signup failed: {e}")
+st.set_page_config(page_title="Crypto AI Forecast Dashboard", layout="wide")
 
 
 
-# LOGIN PAGE
-if st.session_state.user is None:
-    st.title("🔐 Login to Crypto AI Dashboard")
-    tab1, tab2 = st.tabs(["Login", "Signup"])
 
-    with tab1:
-        email = st.text_input("Email")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            login(email, password)
+@st.cache_data(ttl="1h")  # Cache results for 1 hour
+def cached_sentiment_analysis(name, url):
+    return get_market_sentiment_stats(name, url)
 
-    with tab2:
-        new_email = st.text_input("New Email")
-        new_password = st.text_input("New Password", type="password")
-        if st.button("Signup"):
-            signup(new_email, new_password)
+@st.fragment(run_every="1h")  # Heavy lifting happens once an hour
+def render_marquee():
+    # Initial placeholder while loading
+    marquee_spot.markdown(
+        '<marquee style="color: #666;">🔄 Syncing market psychology across exchanges...</marquee>', 
+        unsafe_allow_html=True
+    )
+    
+    COINS = {
+        "Bitcoin": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/bitcoin_news.csv",
+        "Ethereum": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/ethereum_news.csv",
+        "Solana": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/solana_news.csv",
+        "Tether": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/tether_news.csv",
+        "USDC": "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/USDC_news.csv"
+    }
+    
+    ticker_parts = []
+    for name, url in COINS.items():
+        # This call is heavy (FinBERT), but fragment keeps it isolated
+        stats = get_market_sentiment_stats(name, url)
+        ticker_parts.append(
+            f"{name}: 📈 Greed {stats['market_greed_percent']}% <> "
+            f"📉 Fear {stats['market_fear_percent']}% <> "
+            f"Neutral {stats['market_neutral_percent']}%"
+        )
+    
+    marquee_text = " || ".join(ticker_parts)
+    marquee_spot.markdown(
+        f'<marquee style="color: white; font-weight: bold; font-family: sans-serif;">'
+        f'● {marquee_text} ●'
+        f'</marquee>', 
+        unsafe_allow_html=True
+    )
 
-    st.stop()
+@st.fragment(run_every="1s")
+def sync_clock(col_target):
+    col_target.metric("Last Updated", datetime.now().strftime("%H:%M:%S"))
 
-# LOGOUT
-if st.sidebar.button("Logout"):
-    st.session_state.user = None
-    st.rerun()
+BASE_DIR = "."   # ✅ FIXED
 
-# ================= DATA =================
-DATASETS = {
-    "BTC": "data/BTC_historical_INR.csv",
-    "ETH": "data/ETH_historical_INR.csv",
-    "SOL": "data/SOL_historical_INR.csv",
-    "USDC": "data/USDC_historical_INR.csv",
-    "USDT": "data/USDT_historical_INR.csv"
+st.title("📊 Real-Time Crypto Forecasting Dashboard")
+st.markdown("ARIMA • Facebook Prophet • LSTM Deep Learning")
+
+st.markdown("##### Market Sentiment")
+marquee_spot = st.empty()
+
+st.sidebar.header("🎛 Control Panel")
+
+model_choice = st.sidebar.selectbox("Select Model", ["Arima", "Fb_Prophet", "LSTM"])
+coin_choice = st.sidebar.selectbox("Select Coin", ["BTC", "ETH", "SOL", "USDC", "USDT"])
+
+info = {
+    "Arima": "Statistical model for trend & seasonality.",
+    "Fb_Prophet": "Meta's forecasting tool for time series.",
+    "LSTM": "Deep learning model for complex patterns."
 }
 
-@st.cache_data
-def load_price(path):
-    df = pd.read_csv(path)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
-    return df
+st.info(info[model_choice])
 
-@st.cache_data
-def load_news():
-    url = "https://raw.githubusercontent.com/Kokate-Rushik/news-automate/main/news/bitcoin_news.csv"
-    return pd.read_csv(url)
+col1, col2 = st.columns(2)
+with col1:
+    clock_placeholder = st.empty()
 
-@st.cache_resource
-def load_finbert():
-    return pipeline("sentiment-analysis", model="ProsusAI/finbert")
+sync_clock(clock_placeholder)
+col2.metric("Data Status", "Live Simulation")
 
-coin = st.sidebar.selectbox("Select Coin", list(DATASETS.keys()))
-data = load_price(DATASETS[coin])
-news = load_news()
-finbert = load_finbert()
+st.markdown("---")
 
-st.title(f"{coin} AI Forecast + News Sentiment")
+coin_folder = os.path.join(BASE_DIR, '.\Output', model_choice, coin_choice)
 
-# ================= SENTIMENT =================
-st.subheader("Crypto News Sentiment")
-sia = SentimentIntensityAnalyzer()
-
-news['vader'] = news['title'].apply(lambda x: sia.polarity_scores(str(x))['compound'])
-news['finbert_label'] = news['title'].apply(lambda x: finbert(str(x))[0]['label'])
-label_map = {"positive":1,"negative":-1,"neutral":0}
-news['finbert_score'] = news['finbert_label'].str.lower().map(label_map)
-news['final_score'] = (news['vader'] + news['finbert_score']) / 2
-
-st.line_chart(news['final_score'])
-
-avg_sent = news['final_score'].mean()
-if avg_sent > 0.1:
-    st.success("Market Sentiment: Bullish 🟢")
-elif avg_sent < -0.1:
-    st.error("Market Sentiment: Bearish 🔴")
+if not os.path.exists(coin_folder):
+    st.error(f"Folder not found: {coin_folder}")
 else:
-    st.warning("Market Sentiment: Neutral 🟡")
+    images = [f for f in os.listdir(coin_folder) if f.endswith(".png")]
 
-# ================= FORECASTS =================
+    if not images:
+        st.warning("No images found.")
+    else:
+        chart_choice = st.selectbox("Select Analysis Chart", images)
+        image_path = os.path.join(coin_folder, chart_choice)
 
-st.subheader("Historical Price")
-st.line_chart(data['Close'])
+        st.markdown(f"## 📈 {chart_choice.replace('_',' ').replace('.png','')}")
+        st.image(image_path, use_container_width=True)
 
-# ARIMA
-@st.cache_resource
-def run_arima(series):
-    model = ARIMA(series, order=(2,1,2)).fit()
-    return model.forecast(30)
+st.markdown("---")
+st.subheader("📊 Model Strengths")
 
-st.subheader("ARIMA Forecast")
-st.line_chart(run_arima(data['Close']))
+st.table({
+    "Model": ["ARIMA", "Prophet", "LSTM"],
+    "Best For": [
+        "Short-term statistical patterns",
+        "Seasonal financial data",
+        "Non-linear deep learning patterns"
+    ]
+})
 
-# SARIMA
-@st.cache_resource
-def run_sarima(series):
-    model = SARIMAX(series, order=(1,1,1), seasonal_order=(1,1,1,12)).fit()
-    return model.forecast(30)
+st.success("🚀 Multi-model crypto forecasting dashboard running in real-time simulation.")
 
-st.subheader("SARIMA Forecast")
-st.line_chart(run_sarima(data['Close']))
-
-# Prophet
-@st.cache_resource
-def run_prophet(df):
-    p_df = df.reset_index()[['Date','Close']]
-    p_df.columns = ['ds','y']
-    model = Prophet(daily_seasonality=True, changepoint_prior_scale=0.05)
-    model.fit(p_df)
-    future = model.make_future_dataframe(periods=30)
-    return model.predict(future)[['ds','yhat']].set_index('ds').tail(30)
-
-st.subheader("Prophet Forecast")
-st.line_chart(run_prophet(data))
-
-# LSTM
-@st.cache_resource
-def run_lstm(series):
-    scaler = MinMaxScaler()
-    scaled = scaler.fit_transform(series.values.reshape(-1,1))
-
-    X, y = [], []
-    for i in range(60, len(scaled)):
-        X.append(scaled[i-60:i])
-        y.append(scaled[i])
-    X, y = np.array(X), np.array(y)
-
-    model = Sequential([
-        LSTM(64, return_sequences=True),
-        Dropout(0.2),
-        LSTM(64),
-        Dense(1)
-    ])
-    model.compile(optimizer='adam', loss='mse')
-    model.fit(X, y, epochs=15, batch_size=32, verbose=0)
-
-    pred_input = scaled[-60:].reshape(1,60,1)
-    preds = []
-    for _ in range(30):
-        p = model.predict(pred_input, verbose=0)[0][0]
-        preds.append(p)
-        pred_input = np.append(pred_input[:,1:,:], [[[p]]], axis=1)
-
-    preds = scaler.inverse_transform(np.array(preds).reshape(-1,1))
-    future_dates = pd.date_range(series.index[-1], periods=30)
-    return pd.DataFrame(preds, index=future_dates)
-
-st.subheader("LSTM Forecast")
-st.line_chart(run_lstm(data['Close']))
-
-st.success("🚀 AI Forecasting Platform Running Securely")
+render_marquee()
