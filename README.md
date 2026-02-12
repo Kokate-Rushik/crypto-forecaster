@@ -99,5 +99,3 @@ This project was a collaborative effort by the following developers:
   - **USDC** (USD Coin)
   - **USDT** (Tether)
 - **Stefie George** ([@Stefie](https://github.com/stefiegeorge-ai)): **Market Sentiment Model Developer**. Designed the initial sentiment analysis prototype and established the text processing foundations in the early project phases.
-<br>
----
